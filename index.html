@@ -6,6 +6,7 @@
 <title>Stock Hot Wheels</title>
 
 <style>
+/* TODO TU CSS QUEDA IGUAL */
 body {
   font-family: 'Arial', sans-serif;
   background: linear-gradient(135deg,#0f0f0f,#1a1a1a);
@@ -56,15 +57,8 @@ button {
   transition: 0.2s ease;
 }
 
-.agregar {
-  background: #ff2e2e;
-  color: white;
-}
-
-.agregar:hover {
-  background: #ff0000;
-  transform: scale(1.02);
-}
+.agregar { background: #ff2e2e; color: white; }
+.agregar:hover { background: #ff0000; transform: scale(1.02); }
 
 .grid {
   display: flex;
@@ -99,25 +93,8 @@ button {
   margin-bottom: 10px;
 }
 
-.card h3 {
-  font-size: 15px;
-  margin: 5px 0;
-}
-
-.card p {
-  margin: 4px 0;
-  font-size: 14px;
-}
-
-.stock-bajo {
-  color: #ff4d4d;
-  font-weight: bold;
-}
-
-.stock-ok {
-  color: #4dff88;
-  font-weight: bold;
-}
+.stock-bajo { color: #ff4d4d; font-weight: bold; }
+.stock-ok { color: #4dff88; font-weight: bold; }
 
 .btn {
   margin: 4px;
@@ -126,20 +103,9 @@ button {
   font-size: 13px;
 }
 
-.sumar {
-  background: #00c853;
-  color: white;
-}
-
-.restar {
-  background: #d50000;
-  color: white;
-}
-
-.eliminar {
-  background: #ff9100;
-  color: black;
-}
+.sumar { background: #00c853; color: white; }
+.restar { background: #d50000; color: white; }
+.eliminar { background: #ff9100; color: black; }
 
 .sumar:hover,
 .restar:hover,
@@ -178,7 +144,7 @@ import {
 } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 
 const firebaseConfig = {
-  apiKey: "AIzaSyC3uVFJC07KZBJQGtql64wn5Ty1kKDEZiQ",
+  apiKey: "TU_API_KEY",
   authDomain: "stock-hotwheels.firebaseapp.com",
   projectId: "stock-hotwheels",
   storageBucket: "stock-hotwheels.firebasestorage.app",
@@ -202,29 +168,33 @@ form.addEventListener("submit", async (e) => {
 
   const reader = new FileReader();
   reader.onload = async function() {
-    const imageBase64 = reader.result;
-
     await addDoc(collection(db, "autos"), {
       nombre,
       precio,
       stock,
-      imagen: imageBase64
+      imagen: reader.result
     });
-
     form.reset();
   };
-
   reader.readAsDataURL(file);
 });
 
 onSnapshot(collection(db, "autos"), (snapshot) => {
-  lista.innerHTML = "";
-  snapshot.forEach(docSnap => {
-    const auto = docSnap.data();
-    const id = docSnap.id;
 
-    lista.innerHTML += `
-      <div class="card">
+  snapshot.docChanges().forEach((change) => {
+
+    const auto = change.doc.data();
+    const id = change.doc.id;
+
+    if (change.type === "added") {
+
+      if (document.getElementById(id)) return;
+
+      const card = document.createElement("div");
+      card.className = "card";
+      card.id = id;
+
+      card.innerHTML = `
         <img src="${auto.imagen}">
         <h3>${auto.nombre}</h3>
         <p>💲 $${auto.precio}</p>
@@ -234,9 +204,26 @@ onSnapshot(collection(db, "autos"), (snapshot) => {
         <button class="btn sumar" onclick="window.modificar('${id}',1)">+</button>
         <button class="btn restar" onclick="window.modificar('${id}',-1)">-</button>
         <button class="btn eliminar" onclick="window.borrar('${id}')">Eliminar</button>
-      </div>
-    `;
+      `;
+
+      lista.appendChild(card);
+    }
+
+    if (change.type === "modified") {
+      const card = document.getElementById(id);
+      const stockElement = card.querySelector("p:nth-of-type(2)");
+
+      stockElement.textContent = `Stock: ${auto.stock}`;
+      stockElement.className = auto.stock <= 2 ? "stock-bajo" : "stock-ok";
+    }
+
+    if (change.type === "removed") {
+      const card = document.getElementById(id);
+      if (card) card.remove();
+    }
+
   });
+
 });
 
 window.modificar = async (id, cambio) => {
