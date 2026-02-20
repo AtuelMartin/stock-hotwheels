@@ -1,0 +1,259 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Stock Hot Wheels</title>
+
+<style>
+body {
+  font-family: 'Arial', sans-serif;
+  background: linear-gradient(135deg,#0f0f0f,#1a1a1a);
+  color: white;
+  margin: 0;
+  padding: 20px;
+}
+
+h1 {
+  text-align: center;
+  margin-bottom: 25px;
+  font-size: 28px;
+  letter-spacing: 2px;
+  color: #ff2e2e;
+  text-shadow: 0 0 10px rgba(255,0,0,0.7);
+}
+
+form {
+  background: #151515;
+  padding: 15px;
+  border-radius: 12px;
+  margin-bottom: 30px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  border: 1px solid #333;
+  max-width: 400px;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+input, button {
+  padding: 8px;
+  border-radius: 6px;
+  border: none;
+  font-size: 14px;
+}
+
+input {
+  background: #222;
+  color: white;
+  border: 1px solid #333;
+}
+
+button {
+  cursor: pointer;
+  font-weight: bold;
+  transition: 0.2s ease;
+}
+
+.agregar {
+  background: #ff2e2e;
+  color: white;
+}
+
+.agregar:hover {
+  background: #ff0000;
+  transform: scale(1.02);
+}
+
+.grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 25px;
+  justify-content: center;
+}
+
+.card {
+  background: #1a1a1a;
+  width: 200px;
+  padding: 15px;
+  border-radius: 16px;
+  text-align: center;
+  border: 2px solid #ff2e2e;
+  box-shadow: 0 0 15px rgba(255,0,0,0.4);
+  transition: 0.3s ease;
+}
+
+.card:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 0 25px rgba(255,0,0,0.8);
+}
+
+.card img {
+  width: 130px;
+  height: 130px;
+  object-fit: contain;
+  background: white;
+  border-radius: 10px;
+  padding: 5px;
+  margin-bottom: 10px;
+}
+
+.card h3 {
+  font-size: 15px;
+  margin: 5px 0;
+}
+
+.card p {
+  margin: 4px 0;
+  font-size: 14px;
+}
+
+.stock-bajo {
+  color: #ff4d4d;
+  font-weight: bold;
+}
+
+.stock-ok {
+  color: #4dff88;
+  font-weight: bold;
+}
+
+.btn {
+  margin: 4px;
+  padding: 5px 10px;
+  border-radius: 6px;
+  font-size: 13px;
+}
+
+.sumar {
+  background: #00c853;
+  color: white;
+}
+
+.restar {
+  background: #d50000;
+  color: white;
+}
+
+.eliminar {
+  background: #ff9100;
+  color: black;
+}
+
+.sumar:hover,
+.restar:hover,
+.eliminar:hover {
+  transform: scale(1.05);
+}
+</style>
+</head>
+
+<body>
+
+<h1>📦 Control de Stock Hot Wheels</h1>
+
+<form id="form">
+  <input type="text" id="nombre" placeholder="Nombre del auto" required>
+  <input type="number" id="precio" placeholder="Precio" required>
+  <input type="number" id="stock" placeholder="Stock inicial" required>
+  <input type="file" id="imagen" accept="image/*" required>
+  <button type="submit" class="agregar">Agregar Auto</button>
+</form>
+
+<div class="grid" id="lista"></div>
+
+<script type="module">
+
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+import { 
+  getFirestore, 
+  collection, 
+  addDoc, 
+  onSnapshot, 
+  updateDoc, 
+  doc, 
+  deleteDoc,
+  getDoc 
+} from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+
+const firebaseConfig = {
+  apiKey: "AIzaSyC3uVFJC07KZBJQGtql64wn5Ty1kKDEZiQ",
+  authDomain: "stock-hotwheels.firebaseapp.com",
+  projectId: "stock-hotwheels",
+  storageBucket: "stock-hotwheels.firebasestorage.app",
+  messagingSenderId: "777195038133",
+  appId: "1:777195038133:web:06c6f099b7ffa5240165fc"
+};
+
+const app = initializeApp(firebaseConfig);
+const db = getFirestore(app);
+
+const form = document.getElementById("form");
+const lista = document.getElementById("lista");
+
+form.addEventListener("submit", async (e) => {
+  e.preventDefault();
+
+  const nombre = document.getElementById("nombre").value;
+  const precio = parseInt(document.getElementById("precio").value);
+  const stock = parseInt(document.getElementById("stock").value);
+  const file = document.getElementById("imagen").files[0];
+
+  const reader = new FileReader();
+  reader.onload = async function() {
+    const imageBase64 = reader.result;
+
+    await addDoc(collection(db, "autos"), {
+      nombre,
+      precio,
+      stock,
+      imagen: imageBase64
+    });
+
+    form.reset();
+  };
+
+  reader.readAsDataURL(file);
+});
+
+onSnapshot(collection(db, "autos"), (snapshot) => {
+  lista.innerHTML = "";
+  snapshot.forEach(docSnap => {
+    const auto = docSnap.data();
+    const id = docSnap.id;
+
+    lista.innerHTML += `
+      <div class="card">
+        <img src="${auto.imagen}">
+        <h3>${auto.nombre}</h3>
+        <p>💲 $${auto.precio}</p>
+        <p class="${auto.stock <= 2 ? 'stock-bajo' : 'stock-ok'}">
+          Stock: ${auto.stock}
+        </p>
+        <button class="btn sumar" onclick="window.modificar('${id}',1)">+</button>
+        <button class="btn restar" onclick="window.modificar('${id}',-1)">-</button>
+        <button class="btn eliminar" onclick="window.borrar('${id}')">Eliminar</button>
+      </div>
+    `;
+  });
+});
+
+window.modificar = async (id, cambio) => {
+  const refDoc = doc(db, "autos", id);
+  const snap = await getDoc(refDoc);
+  const actual = snap.data().stock;
+
+  if(actual + cambio >= 0){
+    await updateDoc(refDoc, { stock: actual + cambio });
+  }
+};
+
+window.borrar = async (id) => {
+  await deleteDoc(doc(db, "autos", id));
+};
+
+</script>
+
+</body>
+</html>
